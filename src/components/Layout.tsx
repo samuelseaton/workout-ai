@@ -20,13 +20,14 @@ interface LayoutProps {
 }
 
 export default function Layout({ children }: LayoutProps) {
-  const { user } = useAuthenticator();
+  const { user, authStatus } = useAuthenticator();
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const isAuthenticated = authStatus === 'authenticated';
 
   const handleSignOut = async () => {
     await signOut();
-    navigate('/login');
+    navigate('/');
   };
 
   return (
@@ -46,36 +47,46 @@ export default function Layout({ children }: LayoutProps) {
           <Button color="inherit" component={Link} to="/" sx={{ mr: 1 }}>
             Generate
           </Button>
-          <Button color="inherit" component={Link} to="/history">
-            History
-          </Button>
+          {isAuthenticated && (
+            <Button color="inherit" component={Link} to="/history">
+              History
+            </Button>
+          )}
 
-          <IconButton
-            color="inherit"
-            onClick={(e) => setAnchorEl(e.currentTarget)}
-            sx={{ ml: 1 }}
-          >
-            <AccountCircleIcon />
-          </IconButton>
-          <Menu
-            anchorEl={anchorEl}
-            open={Boolean(anchorEl)}
-            onClose={() => setAnchorEl(null)}
-          >
-            <MenuItem disabled>
-              <Typography variant="body2" color="text.secondary">
-                {user?.signInDetails?.loginId ?? 'Account'}
-              </Typography>
-            </MenuItem>
-            <MenuItem
-              onClick={() => {
-                setAnchorEl(null);
-                handleSignOut();
-              }}
-            >
-              Sign out
-            </MenuItem>
-          </Menu>
+          {isAuthenticated ? (
+            <>
+              <IconButton
+                color="inherit"
+                onClick={(e) => setAnchorEl(e.currentTarget)}
+                sx={{ ml: 1 }}
+              >
+                <AccountCircleIcon />
+              </IconButton>
+              <Menu
+                anchorEl={anchorEl}
+                open={Boolean(anchorEl)}
+                onClose={() => setAnchorEl(null)}
+              >
+                <MenuItem disabled>
+                  <Typography variant="body2" color="text.secondary">
+                    {user?.signInDetails?.loginId ?? 'Account'}
+                  </Typography>
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    setAnchorEl(null);
+                    handleSignOut();
+                  }}
+                >
+                  Sign out
+                </MenuItem>
+              </Menu>
+            </>
+          ) : (
+            <Button color="inherit" component={Link} to="/login" sx={{ ml: 1 }}>
+              Sign in
+            </Button>
+          )}
         </Toolbar>
       </AppBar>
 

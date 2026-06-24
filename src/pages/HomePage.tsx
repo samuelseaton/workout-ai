@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
-import { Alert, Box, CircularProgress, Typography } from '@mui/material';
+import { useState, useEffect, useRef } from 'react';
+import { Alert, Box, CircularProgress, Dialog, Typography } from '@mui/material';
+import { Authenticator, useAuthenticator } from '@aws-amplify/ui-react';
 import WorkoutWizard from '../components/WorkoutWizard';
 import WorkoutResult from '../components/WorkoutResult';
 import Layout from '../components/Layout';
@@ -9,7 +10,8 @@ import type { Exercise, WorkoutInputs } from '../types/workout';
 type PageState = 'loading-profile' | 'wizard' | 'generating' | 'result' | 'error';
 
 export default function HomePage() {
-  const [pageState, setPageState] = useState<PageState>('loading-profile');
+  const { authStatus } = useAuthenticator();
+  const [pageState, setPageState] = useState<PageState>('wizard');
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [currentInputs, setCurrentInputs] = useState<WorkoutInputs | null>(null);
   const [saving, setSaving] = useState(false);
@@ -17,9 +19,14 @@ export default function HomePage() {
   const [errorMsg, setErrorMsg] = useState('');
   const [profileId, setProfileId] = useState<string | null>(null);
   const [savedProfile, setSavedProfile] = useState<Partial<WorkoutInputs>>({});
+  const [loginModalOpen, setLoginModalOpen] = useState(false);
+  const pendingInputs = useRef<WorkoutInputs | null>(null);
 
   useEffect(() => {
+    if (authStatus !== 'authenticated') return;
+
     const loadProfile = async () => {
+      setPageState('loading-profile');
       try {
         const { data } = await client.models.UserProfile.list();
         if (data?.length) {
@@ -39,7 +46,17 @@ export default function HomePage() {
       }
     };
     loadProfile();
-  }, []);
+  }, [authStatus]);
+
+  // After login via modal, auto-trigger the pending generation
+  useEffect(() => {
+    if (authStatus !== 'authenticated' || !pendingInputs.current) return;
+    const inputs = pendingInputs.current;
+    pendingInputs.current = null;
+    setLoginModalOpen(false);
+    runGenerate(inputs);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authStatus]);
 
   const saveProfile = async (inputs: WorkoutInputs) => {
     const profileData = {
@@ -61,7 +78,7 @@ export default function HomePage() {
     }
   };
 
-  const handleGenerate = async (inputs: WorkoutInputs) => {
+  const runGenerate = async (inputs: WorkoutInputs) => {
     setCurrentInputs(inputs);
     setPageState('generating');
     setErrorMsg('');
@@ -84,6 +101,15 @@ export default function HomePage() {
       setErrorMsg(err instanceof Error ? err.message : 'Something went wrong');
       setPageState('error');
     }
+  };
+
+  const handleGenerate = (inputs: WorkoutInputs) => {
+    if (authStatus !== 'authenticated') {
+      pendingInputs.current = inputs;
+      setLoginModalOpen(true);
+      return;
+    }
+    runGenerate(inputs);
   };
 
   const handleSave = async () => {
@@ -111,7 +137,7 @@ export default function HomePage() {
 
   return (
     <Layout>
-      {(pageState === 'loading-profile') && (
+      {pageState === 'loading-profile' && (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 10 }}>
           <CircularProgress />
         </Box>
@@ -147,6 +173,15 @@ export default function HomePage() {
           saved={saved}
         />
       )}
+
+      <Dialog open={loginModalOpen} onClose={() => setLoginModalOpen(false)} maxWidth="sm" fullWidth>
+        <Typography variant="h6" sx={{ pt: 3, px: 3, fontWeight: 700, textAlign: 'center' }}>
+          Sign in to generate your workout
+        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+          <Authenticator hideSignUp />
+        </Box>
+      </Dialog>
     </Layout>
   );
 }

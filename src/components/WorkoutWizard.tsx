@@ -27,7 +27,8 @@ import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 import type { WorkoutInputs } from '../types/workout';
 
-const STEPS = ['About You', 'Body Stats', 'Workout Type', 'Intensity', 'Goal', 'Muscles', 'Duration'];
+const ALL_STEPS = ['About You', 'Body Stats', 'Workout Type', 'Intensity', 'Goal', 'Muscles', 'Duration'];
+const YOGA_SKIP = new Set([4, 5]); // skip Goal and Muscles for Yoga
 const WORKOUT_TYPES = ['Bodybuilding', 'Powerlifting', 'Powerbuilding', 'Calisthenics', 'Yoga'];
 const INTENSITIES = ['Beginner', 'Intermediate', 'Advanced'];
 const GOALS = ['Bulking', 'Cutting', 'Maintaining'];
@@ -69,6 +70,11 @@ export default function WorkoutWizard({ onSubmit, loading, initialProfile }: Pro
   const [step, setStep] = useState(0);
   const [inputs, setInputs] = useState<WorkoutInputs>({ ...DEFAULT_INPUTS, ...initialProfile });
 
+  const isYoga = inputs.workoutType === 'Yoga';
+  const visibleIndices = ALL_STEPS.map((_, i) => i).filter((i) => !isYoga || !YOGA_SKIP.has(i));
+  const visibleSteps = visibleIndices.map((i) => ALL_STEPS[i]);
+  const actualStep = visibleIndices[step];
+
   const update = <K extends keyof WorkoutInputs>(field: K, value: WorkoutInputs[K]) =>
     setInputs((prev) => ({ ...prev, [field]: value }));
 
@@ -90,8 +96,16 @@ export default function WorkoutWizard({ onSubmit, loading, initialProfile }: Pro
     }));
   };
 
+  const handleWorkoutTypeChange = (value: string) => {
+    setInputs((prev) => ({
+      ...prev,
+      workoutType: value,
+      ...(value === 'Yoga' && { goal: '', targetMuscles: [] }),
+    }));
+  };
+
   const canAdvance = (): boolean => {
-    switch (step) {
+    switch (actualStep) {
       case 0: return inputs.birthday !== '' && inputs.gender !== '';
       case 1: return inputs.height !== '' && inputs.weight !== '';
       case 2: return inputs.workoutType !== '';
@@ -104,7 +118,7 @@ export default function WorkoutWizard({ onSubmit, loading, initialProfile }: Pro
   };
 
   const renderStep = () => {
-    switch (step) {
+    switch (actualStep) {
       case 0:
         return (
           <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -150,7 +164,7 @@ export default function WorkoutWizard({ onSubmit, loading, initialProfile }: Pro
         return (
           <FormControl>
             <FormLabel>Workout Style</FormLabel>
-            <RadioGroup value={inputs.workoutType} onChange={(e) => update('workoutType', e.target.value)}>
+            <RadioGroup value={inputs.workoutType} onChange={(e) => handleWorkoutTypeChange(e.target.value)}>
               {WORKOUT_TYPES.map((t) => (
                 <FormControlLabel key={t} value={t} control={<Radio />} label={t} />
               ))}
@@ -248,7 +262,7 @@ export default function WorkoutWizard({ onSubmit, loading, initialProfile }: Pro
   return (
     <Box>
       <Stepper activeStep={step} alternativeLabel sx={{ mb: 4 }}>
-        {STEPS.map((label) => (
+        {visibleSteps.map((label) => (
           <Step key={label}>
             <StepLabel>{label}</StepLabel>
           </Step>
@@ -256,7 +270,7 @@ export default function WorkoutWizard({ onSubmit, loading, initialProfile }: Pro
       </Stepper>
 
       <Typography variant="h5" sx={{ fontWeight: 700, mb: 3 }}>
-        {STEPS[step]}
+        {visibleSteps[step]}
       </Typography>
 
       {renderStep()}
@@ -271,7 +285,7 @@ export default function WorkoutWizard({ onSubmit, loading, initialProfile }: Pro
           Back
         </Button>
 
-        {step < STEPS.length - 1 ? (
+        {step < visibleSteps.length - 1 ? (
           <Button
             endIcon={<ArrowForwardIcon />}
             onClick={() => setStep((s) => s + 1)}
