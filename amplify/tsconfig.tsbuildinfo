@@ -1,0 +1,1 @@
+{"root":["./backend.ts","./auth/resource.ts","./data/resource.ts","./functions/generate-workout/handler.ts","./functions/generate-workout/resource.ts"],"version":"6.0.3"}
