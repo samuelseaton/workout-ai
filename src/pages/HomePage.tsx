@@ -143,23 +143,24 @@ export default function HomePage() {
         </Box>
       )}
 
-      {(pageState === 'wizard' || pageState === 'error') && (
+      {(pageState === 'wizard' || pageState === 'generating' || pageState === 'error') && (
         <Box>
           {pageState === 'error' && (
             <Alert severity="error" sx={{ mb: 3 }}>{errorMsg}</Alert>
           )}
-          <WorkoutWizard
-            onSubmit={handleGenerate}
-            loading={false}
-            initialProfile={savedProfile}
-          />
-        </Box>
-      )}
-
-      {pageState === 'generating' && (
-        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 10, gap: 3 }}>
-          <CircularProgress size={56} />
-          <Typography color="text.secondary">Building your workout…</Typography>
+          {pageState === 'generating' && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 4, gap: 3 }}>
+              <CircularProgress size={56} />
+              <Typography color="text.secondary">Building your workout…</Typography>
+            </Box>
+          )}
+          <Box sx={{ display: pageState === 'generating' ? 'none' : 'block' }}>
+            <WorkoutWizard
+              onSubmit={handleGenerate}
+              loading={pageState === 'generating'}
+              initialProfile={savedProfile}
+            />
+          </Box>
         </Box>
       )}
 

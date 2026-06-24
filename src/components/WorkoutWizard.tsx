@@ -275,7 +275,7 @@ export default function WorkoutWizard({ onSubmit, loading, initialProfile }: Pro
 
       {renderStep()}
 
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'flex-start', gap: 2, mt: 4 }}>
         <Button
           startIcon={<ArrowBackIcon />}
           onClick={() => setStep((s) => s - 1)}
