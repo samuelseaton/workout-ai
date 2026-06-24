@@ -115,6 +115,18 @@ npm run dev
 
 App runs at `http://localhost:5173`. Auth is handled by Cognito — create a user via the AWS Cognito console (User Pools) since self-signup is disabled.
 
+## AWS Resources
+
+| Resource | Link |
+|---|---|
+| Amplify App | https://us-east-1.console.aws.amazon.com/amplify/apps/d3bdqev8ogjfm |
+| Cognito User Pool (`us-east-1_BTs8JmgmY`) | https://us-east-1.console.aws.amazon.com/cognito/v2/idp/user-pools/us-east-1_BTs8JmgmY/users |
+| Groq Console | https://console.groq.com |
+
+The `GROQ_API_KEY` is stored in SSM at:
+- `/amplify/shared/d3bdqev8ogjfm/GROQ_API_KEY`
+- `/amplify/d3bdqev8ogjfm/main-branch-94ce186bdf/GROQ_API_KEY`
+
 ## Deployment
 
 The app is deployed via AWS Amplify Hosting, connected to the `main` branch of this repo. Every push to `main` triggers a full build and deploy defined in `amplify.yml`:
@@ -122,13 +134,12 @@ The app is deployed via AWS Amplify Hosting, connected to the `main` branch of t
 1. **Backend** — `npx ampx pipeline-deploy` provisions/updates the Cognito, AppSync, and Lambda resources via CloudFormation
 2. **Frontend** — `npm run build` outputs to `dist/`, which Amplify serves as a static site
 
-The `GROQ_API_KEY` secret for the hosted environment is stored in AWS SSM Parameter Store at `/amplify/workoutai/main/GROQ_API_KEY`.
-
 ### Creating a user (production)
 
-Self-signup is disabled. To add a user:
+Self-signup is disabled. To add a user via CLI:
 
-1. Go to AWS Console → Cognito → User Pools
-2. Find the `workout-ai` pool
-3. Users → Create user → enter email, set temporary password
-4. The user will be prompted to change their password on first login
+```bash
+aws cognito-idp admin-create-user --user-pool-id us-east-1_BTs8JmgmY --username email@example.com --temporary-password "TempPass123!" --region us-east-1
+aws cognito-idp admin-set-user-password --user-pool-id us-east-1_BTs8JmgmY --username email@example.com --password "RealPassword!" --permanent --region us-east-1
+aws cognito-idp admin-update-user-attributes --user-pool-id us-east-1_BTs8JmgmY --username email@example.com --user-attributes Name=email_verified,Value=true --region us-east-1
+```
